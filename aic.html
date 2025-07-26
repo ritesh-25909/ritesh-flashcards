@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayurveda MCQ Flashcards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@700&family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto Slab', serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            background: #0a0a1a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .background-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.7);
+            animation: float 15s infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) translateX(-50vw); }
+            100% { transform: translateY(-100vh) translateX(50vw); }
+        }
+        .heading {
+            font-family: 'Great Vibes', cursive;
+            color: #00ffff;
+            font-size: 48px;
+            text-align: center;
+            position: absolute;
+            top: 30px; /* Changed from -50px to 30px */
+            width: 100%;
+            opacity: 0;
+            animation: slideIn 1.5s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(20px); }
+        }
+        .flashcard-container {
+            perspective: 1000px;
+            position: relative;
+            z-index: 1;
+            margin-top: 80px;
+        }
+        .flashcard {
+            width: 500px;
+            height: 400px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff, 0 0 60px #00ffcc;
+            background: linear-gradient(45deg, #1a1a3a, #0a0a2a);
+            color: #fff;
+            border-radius: 15px;
+        }
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+        .front, .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            border-radius: 15px;
+            background: transparent;
+            text-align: center;
+            font-size: 20px;
+            opacity: 0;
+            animation: fadeIn 1s forwards;
+        }
+        .front .click-me {
+            margin-top: 20px;
+            font-size: 24px;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .back {
+            transform: rotateY(180deg);
+        }
+        .navigation {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1;
+        }
+        button {
+            font-family: 'Playfair Display', serif;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #00ffff;
+            color: #0a0a1a;
+            border: none;
+            border-radius: 5px;
+            text-shadow: 0 0 5px #00ffff;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #00ccff;
+            transform: scale(1.1);
+            box-shadow: 0 0 10px #00ffff;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="background-particles">
+        <script>
+            function createParticles() {
+                const particleCount = 50;
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    const size = Math.random() * 5 + 2;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+                    particle.style.left = `${Math.random() * 100}vw`;
+                    particle.style.animationDuration = `${Math.random() * 10 + 5}s`;
+                    particle.style.animationDelay = `${Math.random() * 5}s`;
+                    document.querySelector('.background-particles').appendChild(particle);
+                }
+            }
+            createParticles();
+        </script>
+    </div>
+    <div class="heading">Welcome to Ritesh Website</div>
+    <div class="flashcard-container">
+        <div class="flashcard" id="flashcard">
+            <div class="front" id="question"></div>
+            <div class="back" id="answer"></div>
+        </div>
+    </div>
+    <div class="navigation">
+        <button id="prevBtn" onclick="prevCard()" disabled>Previous</button>
+        <button id="nextBtn" onclick="nextCard()">Next</button>
+    </div>
+
+    <script>
+        const flashcards = [
+            {
+                question: "1. How to use? flashcards<br><div class='click-me'>Click me</div>",
+                answer: "Click the card to flip between the question and answer.<br>Use 'Previous' and 'Next' buttons to navigate through the cards.<br>Enjoy learning about Ayurveda!<br><br>"
+            },
+            {
+                question: "2. The ancient text 'Charaka Samhita' is mainly related to:",
+                answer: "A) Surgery<br>B) Yoga<br>C) Medicine<br>D) Astrology<br><br>Answer: C"
+            },
+            {
+                question: "3. How many doshas are described in Ayurveda?",
+                answer: "A) 2<br>B) 3<br>C) 4<br>D) 5<br><br>Answer: B"
+            },
+            {
+                question: "4. What are the three doshas in Ayurveda?",
+                answer: "A) Vata, Pitta, Kapha<br>B) Air, Fire, Water<br>C) Sattva, Rajas, Tamas<br>D) Soma, Agni, Marut<br><br>Answer: A"
+            },
+            {
+                question: "5. 'Sushruta Samhita' mainly deals with:",
+                answer: "A) Internal Medicine<br>B) Surgery<br>C) Philosophy<br>D) Astrology<br><br>Answer: B"
+            }
+        ];
+
+        let currentCard = 0;
+        const flashcard = document.getElementById('flashcard');
+        const questionEl = document.getElementById('question');
+        const answerEl = document.getElementById('answer');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        function displayCard() {
+            questionEl.innerHTML = flashcards[currentCard].question;
+            answerEl.innerHTML = flashcards[currentCard].answer;
+            questionEl.style.animation = 'none';
+            answerEl.style.animation = 'none';
+            requestAnimationFrame(() => {
+                questionEl.style.animation = 'fadeIn 1s forwards';
+                answerEl.style.animation = 'fadeIn 1s forwards';
+            });
+            prevBtn.disabled = currentCard === 0;
+            nextBtn.disabled = currentCard === flashcards.length - 1;
+            flashcard.classList.remove('flipped');
+        }
+
+        function flipCard() {
+            flashcard.classList.toggle('flipped');
+        }
+
+        function nextCard() {
+            if (currentCard < flashcards.length - 1) {
+                currentCard++;
+                displayCard();
+            }
+        }
+
+        function prevCard() {
+            if (currentCard > 0) {
+                currentCard--;
+                displayCard();
+            }
+        }
+
+        flashcard.addEventListener('click', flipCard);
+        displayCard();
+    </script>
+</body>
+</html>
