@@ -1,0 +1,273 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayurveda Flashcards</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Cinzel:wght@700&display=swap');
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Arial', sans-serif;
+            overflow-x: hidden;
+        }
+        .card {
+            perspective: 1000px;
+            width: 100%;
+            max-width: 500px;
+            margin: 1rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s ease forwards;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .card-inner.flipped {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            background: #0f172a;
+            border: 2px solid #00f6ff;
+        }
+        .card-front h2, .card-front ul, .card-back {
+            font-family: 'Georgia', serif;
+            font-weight: 600;
+            color: #e0e7ff;
+            text-shadow: 0 0 5px rgba(0, 246, 255, 0.7);
+            line-height: 1.6;
+        }
+        .card-front h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .card-front ul {
+            font-size: 1.2rem;
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            text-align: center;
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .neon-text {
+            font-size: 4rem;
+            font-family: 'Playfair Display', serif;
+            text-shadow: 0 0 10px #00f6ff, 0 0 20px #00f6ff, 0 0 30px #00f6ff;
+            animation: fadeInScale 2s ease-out forwards;
+            position: relative;
+            top: -80px; /* Move heading slightly upward */
+        }
+        @keyframes fadeInScale {
+            0% {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        .nav-button {
+            background: transparent;
+            border: 2px solid #00f6ff;
+            color: #00f6ff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s;
+            margin: 0 1rem;
+        }
+        .nav-button:hover {
+            background: #00f6ff;
+            color: #0f172a;
+            box-shadow: 0 0 15px #00f6ff;
+        }
+    </style>
+</head>
+<body class="text-white">
+    <h1 class="neon-text mt-4 mb-12">Welcome to Ritesh Das Web</h1>
+    <div id="flashcard-container" class="w-full max-w-4xl flex justify-center">
+        <!-- Flashcards will be dynamically inserted here -->
+    </div>
+    <div class="flex justify-center w-full max-w-4xl mt-8 mb-4">
+        <button id="prev-button" class="nav-button">Previous</button>
+        <button id="next-button" class="nav-button">Next</button>
+    </div>
+
+    <script>
+        const flashcards = [
+            { question: "Who is considered the father of Ayurveda?", options: ["A) Patanjali", "B) Charaka", "C) Sushruta"], answer: "C) Sushruta" },
+            { question: "'Sushruta Samhita' mainly deals with:", options: ["A) Internal Medicine", "B) Surgery", "C) Philosophy", "D) Astrology"], answer: "B) Surgery" },
+            { question: "Ayurveda is considered a part of which Veda?", options: ["A) Rigveda", "B) Samaveda", "C) Atharvaveda", "D) Yajurveda"], answer: "C) Atharvaveda" },
+            { question: "Which of the following is NOT a basic principle of Ayurveda?", options: ["A) Panchamahabhuta", "B) Tridosha", "C) Astanga", "D) Panchatantra"], answer: "D) Panchatantra" },
+            { question: "The word 'Ayurveda' is derived from Sanskrit. What does it mean?", options: ["A) Knowledge of medicine", "B) Science of life", "C) Path of health", "D) Book of herbs"], answer: "B) Science of life" },
+            { question: "Who is known as the author of 'Sushruta Samhita'?", options: ["A) Dhanvantari", "B) Sushruta", "C) Charaka", "D) Agnivesha"], answer: "B) Sushruta" },
+            { question: "How many branches (Astanga) of Ayurveda are there?", options: ["A) 3", "B) 5", "C) 7", "D) 8"], answer: "D) 8" },
+            { question: "The Ayurvedic term for digestion fire is:", options: ["A) Vayu", "B) Agni", "C) Soma", "D) Tejas"], answer: "B) Agni" },
+            { question: "Which plant is known as the 'queen of herbs' in Ayurveda?", options: ["A) Amla", "B) Neem", "C) Tulsi", "D) Ashwagandha"], answer: "C) Tulsi" },
+            { question: "Which is considered the best time for Panchakarma therapy?", options: ["A) Summer", "B) Rainy season (Monsoon)", "C) Winter", "D) Spring"], answer: "B) Rainy season (Monsoon)" },
+            { question: "In Ayurveda, which dosha controls movement and nervous functions?", options: ["A) Pitta", "B) Kapha", "C) Vata", "D) Agni"], answer: "C) Vata" },
+            { question: "What does 'Rasayana' mean in Ayurveda?", options: ["A) A surgical technique", "B) Detox method", "C) Rejuvenation therapy", "D) Painkiller"], answer: "C) Rejuvenation therapy" },
+            { question: "What is 'Dinacharya' in Ayurveda?", options: ["A) Night therapy", "B) Daily routine", "C) Diet pattern", "D) Seasonal treatment"], answer: "B) Daily routine" },
+            { question: "Ayurveda aims to treat a person:", options: ["A) Only after disease occurs", "B) With modern medicine", "C) Holistically - body, mind, and spirit", "D) Through surgery only"], answer: "C) Holistically - body, mind, and spirit" },
+            { question: "The principle of Ayurveda is:", options: ["A) Prevention is better than cure", "B) Surgery is the best treatment", "C) Medicines must be chemical-based", "D) Use only external therapies"], answer: "A) Prevention is better than cure" },
+            { question: "Which of these herbs is commonly used to boost memory in Ayurveda?", options: ["A) Neem", "B) Brahmi", "C) Ashoka", "D) Haritaki"], answer: "B) Brahmi" },
+            { question: "Ayurveda originated in which country?", options: ["A) China", "B) India", "C) Egypt", "D) Greece"], answer: "B) India" },
+            { question: "Which ancient Ayurvedic scholar is known for contributions in alchemy and Rasashastra?", options: ["A) Patanjali", "B) Nagarjuna", "C) Atreya", "D) Kashyapa"], answer: "B) Nagarjuna" },
+            { question: "Which dosha is primarily responsible for digestion and metabolism?", options: ["A) Vata", "B) Pitta", "C) Kapha", "D) Rasa"], answer: "B) Pitta" },
+            { question: "What is the meaning of Panchakarma?", options: ["A) Five senses", "B) Five treatments", "C) Five tastes", "D) Five elements"], answer: "B) Five treatments" },
+            { question: "Which branch of Ayurveda deals with pediatrics?", options: ["A) Kaumarabhritya", "B) Shalakya Tantra", "C) Rasayana", "D) Vajikarana"], answer: "A) Kaumarabhritya" },
+            { question: "What is the Ayurvedic term for body tissues?", options: ["A) Dhatus", "B) Doshas", "C) Malas", "D) Srotas"], answer: "A) Dhatus" },
+            { question: "Which of the following is a Rasayana herb?", options: ["A) Haritaki", "B) Brahmi", "C) Manjishtha", "D) Arjuna"], answer: "B) Brahmi" },
+            { question: "Which dosha increases in old age according to Ayurveda?", options: ["A) Vata", "B) Pitta", "C) Kapha", "D) All"], answer: "A) Vata" },
+            { question: "Which concept explains body constitution in Ayurveda?", options: ["A) Srotas", "B) Prakriti", "C) Ojas", "D) Rasa"], answer: "B) Prakriti" },
+            { question: "Which of these is an example of Kapha aggravating food?", options: ["A) Yogurt", "B) Ginger", "C) Bitter gourd", "D) Garlic"], answer: "A) Yogurt" },
+            { question: "In Ayurveda, which dhatu is related to reproductive tissue?", options: ["A) Rasa", "B) Rakta", "C) Shukra", "D) Mamsa"], answer: "C) Shukra" },
+            { question: "Which treatment procedure involves medicated enema?", options: ["A) Vamana", "B) Basti", "C) Nasya", "D) Raktamokshana"], answer: "B) Basti" },
+            { question: "Which is the seat of Vata dosha?", options: ["A) Liver", "B) Large intestine", "C) Heart", "D) Lungs"], answer: "B) Large intestine" },
+            { question: "Which metal is commonly used in Bhasmas (calcined preparations)?", options: ["A) Silver", "B) Lead", "C) Mercury", "D) Nickel"], answer: "C) Mercury" },
+            { question: "Which Ayurvedic term refers to the channels of the body?", options: ["A) Dhatu", "B) Mala", "C) Srotas", "D) Agni"], answer: "C) Srotas" },
+            { question: "Which part of the body is mainly associated with Pitta dosha?", options: ["A) Brain", "B) Heart", "C) Stomach", "D) Lungs"], answer: "C) Stomach" },
+            { question: "What is the Ayurvedic term for immunity?", options: ["A) Bala", "B) Agni", "C) Ojas", "D) Rasa"], answer: "C) Ojas" },
+            { question: "Which taste increases Kapha dosha?", options: ["A) Bitter", "B) Salty", "C) Astringent", "D) Sweet"], answer: "D) Sweet" },
+            { question: "Which of these therapies is used for purification?", options: ["A) Shirodhara", "B) Abhyanga", "C) Panchakarma", "D) Rasayana"], answer: "C) Panchakarma" },
+            { question: "What is the primary function of Agni in Ayurveda?", options: ["A) Circulation", "B) Digestion", "C) Breathing", "D) Movement"], answer: "B) Digestion" },
+            { question: "Which text is attributed to Kashyapa in Ayurveda?", options: ["A) Kashyapa Samhita", "B) Ashtanga Hridaya", "C) Bhavaprakasha", "D) Charaka Samhita"], answer: "A) Kashyapa Samhita" },
+            { question: "Which plant is traditionally used to manage stress in Ayurveda?", options: ["A) Ashwagandha", "B) Neem", "C) Shatavari", "D) Giloy"], answer: "A) Ashwagandha" },
+            { question: "Which of these is an Ayurvedic detoxifying drink?", options: ["A) Herbal tea", "B) Warm lemon water", "C) Triphala decoction", "D) Honey milk"], answer: "C) Triphala decoction" },
+            { question: "Which of the following helps balance Vata dosha?", options: ["A) Ice water", "B) Dry fruits", "C) Warm oil massage", "D) Fasting"], answer: "C) Warm oil massage" },
+            { question: "Which Ayurvedic term means waste products of the body?", options: ["A) Dhatus", "B) Srotas", "C) Malas", "D) Agni"], answer: "C) Malas" },
+            { question: "Which dosha is heavy, slow and cold in nature?", options: ["A) Vata", "B) Pitta", "C) Kapha", "D) Agni"], answer: "C) Kapha" },
+            { question: "Which of the following tastes balances Pitta dosha?", options: ["A) Sweet", "B) Sour", "C) Salty", "D) Spicy"], answer: "A) Sweet" },
+            { question: "Which Ayurvedic preparation is commonly used for eye diseases?", options: ["A) Chyawanprash", "B) Triphala", "C) Ashwagandha", "D) Haridra"], answer: "B) Triphala" },
+            { question: "Which dosha governs transformation and metabolism?", options: ["A) Vata", "B) Pitta", "C) Kapha", "D) Ojas"], answer: "B) Pitta" },
+            { question: "What is the name of Ayurvedic rejuvenation therapy?", options: ["A) Rasayana", "B) Shodhana", "C) Shamana", "D) Marma"], answer: "A) Rasayana" },
+            { question: "Which herb is used in Ayurveda for liver protection?", options: ["A) Neem", "B) Bhringraj", "C) Kalmegh", "D) Brahmi"], answer: "C) Kalmegh" },
+            { question: "Which branch of Ayurveda deals with toxicology?", options: ["A) Rasayana", "B) Agadatantra", "C) Kayachikitsa", "D) Shalya Tantra"], answer: "B) Agadatantra" },
+            { question: "Which oil is commonly used in Ayurvedic massage?", options: ["A) Castor oil", "B) Mustard oil", "C) Sesame oil", "D) Coconut oil"], answer: "C) Sesame oil" },
+            { question: "What is the meaning of 'Ojas' in Ayurveda?", options: ["A) Energy", "B) Waste", "C) Immunity essence", "D) Blood"], answer: "C) Immunity essence" },
+            { question: "What is a common use of Shatavari in Ayurveda?", options: ["A) Anti-aging", "B) Reproductive health", "C) Antiviral", "D) Detoxification"], answer: "B) Reproductive health" },
+            { question: "Which is the first dhatu formed from digested food?", options: ["A) Rakta", "B) Mamsa", "C) Rasa", "D) Asthi"], answer: "C) Rasa" },
+            { question: "Which Ayurvedic oil is used for hair health?", options: ["A) Mahanarayan oil", "B) Brahmi oil", "C) Bala oil", "D) Amrut oil"], answer: "B) Brahmi oil" },
+            { question: "Which Ayurvedic herb is used for joint pain relief?", options: ["A) Haridra", "B) Shalaki", "C) Guduchi", "D) Tulsi"], answer: "B) Shalaki" },
+            { question: "Which element is dominant in Pitta dosha?", options: ["A) Water", "B) Air", "C) Fire", "D) Earth"], answer: "C) Fire" },
+            { question: "Herb used for blood purification in Ayurveda?", options: ["A) Neem", "B) Ashoka", "C) Arjuna", "D) Vidanga"], answer: "A) Neem" },
+            { question: "Which season increases Vata dosha?", options: ["A) Hemanta", "B) Varsha", "C) Sharad", "D) Grishma"], answer: "D) Grishma" },
+            { question: "Balance of Tridosha leads to:", options: ["A) Disease", "B) Weak digestion", "C) Health", "D) Fatigue"], answer: "C) Health" },
+            { question: "Who compiled Ashtanga Hridaya?", options: ["A) Sushruta", "B) Vagbhata", "C) Charaka", "D) Atreya"], answer: "B) Vagbhata" },
+            { question: "Vajikarana therapy in Ayurveda deals with:", options: ["A) Detox", "B) Pediatrics", "C) Fertility & Virility", "D) Eye care"], answer: "C) Fertility & Virility" }
+        ];
+
+        let currentIndex = 0;
+        const container = document.getElementById('flashcard-container');
+        const prevButton = document.getElementById('prev-button');
+        const nextButton = document.getElementById('next-button');
+
+        function displayFlashcard(index) {
+            container.innerHTML = '';
+            const card = flashcards[index];
+            const cardElement = document.createElement('div');
+            cardElement.className = 'card';
+            cardElement.style.animationDelay = `${index * 0.1}s`;
+            cardElement.innerHTML = `
+                <div class="card-inner">
+                    <div class="card-front text-white">
+                        <h2 class="text-xl font-semibold mb-4">${card.question}</h2>
+                        <ul class="space-y-2">
+                            ${card.options.map(option => `<li>${option}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="card-back">
+                        ${card.answer}
+                    </div>
+                </div>
+            `;
+            container.appendChild(cardElement);
+
+            const cardInner = cardElement.querySelector('.card-inner');
+            cardElement.addEventListener('click', () => {
+                cardInner.classList.toggle('flipped');
+            });
+        }
+
+        prevButton.addEventListener('click', () => {
+            currentIndex = (currentIndex - 1 + flashcards.length) % flashcards.length;
+            displayFlashcard(currentIndex);
+        });
+
+        nextButton.addEventListener('click', () => {
+            currentIndex = (currentIndex + 1) % flashcards.length;
+            displayFlashcard(currentIndex);
+        });
+
+        displayFlashcard(currentIndex);
+    </script>
+</body>
+</html>
